@@ -25,6 +25,7 @@ const userSchema = new Schema({
     avatar: { type: String },
     tags: { type: [{ tagId: { type: Types.ObjectId, ref: 'Tag', required: true } }], default: [], required: true },
     following: { type: [{ userId: { type: Types.ObjectId, ref: 'User', required: true }, state: { enum: Object.values(followingStateType), required: true } }] },
+    password: { type: String, required: true },
     date: { type: Date, default: Date.now, required: true }
 });
 
@@ -44,24 +45,22 @@ export class User {
 }
 
 export class UserMiddleware {
-    static parseParamsUser() {
-        return async (req, res, next) => {
-            try {
-                const id = req.params.id;
-                if (!id || (id == "@me" ? false : typeof id !== "string")) throw new CustomError({ message: "Invalid request.", error: "InvalidRequest" });
+    static async parseParamsUser(req, res, next) {
+        try {
+            const id = req.params.id;
+            if (!id || (id == "@me" ? false : typeof id !== "string")) throw new CustomError({ message: "Invalid request.", error: "InvalidRequest" }, 400);
 
-                if (id == "@me" || req.user.userId === id) req.paramsUser = req.user;
-                else {
-                    const user = await UserModel.findById(id);
-                    if (!user) throw new CustomError({ message: "User not found.", error: "UserNotFound" });
-                    req.paramsUser = User.getFields(user, User.hasPermission(user, PERMISSIONS.VIEW_USERS));
-                }
-
-                next();
-            } catch (error) {
-                console.error(error);
-                res.status(error.status || 400).json(error.message || { message: "An error occured.", error: "UnknownError" });
+            if (id == "@me" || req.user.userId === id) req.paramsUser = req.user;
+            else {
+                const user = await UserModel.findById(id);
+                if (!user) throw new CustomError({ message: "User not found.", error: "UserNotFound" }, 404);
+                req.paramsUser = User.getFields(user, User.hasPermission(user, PERMISSIONS.VIEW_USERS));
             }
+
+            next();
+        } catch (error) {
+            console.error(error);
+            res.status(error.status || 500).json(error.message || { message: "Internal server error.", error: "InternalServerError" });
         }
     }
 
@@ -72,7 +71,7 @@ export class UserMiddleware {
                 next();
             } catch (error) {
                 console.error(error);
-                res.status(error.status || 400).json(error.message || { message: "An error occured.", error: "UnknownError" });
+                res.status(error.status || 500).json(error.message || { message: "Internal server error.", error: "InternalServerError" });
             }
         }
     }
