@@ -3,12 +3,12 @@ import { PERMISSIONS, ROLE_VALUES } from '../utils/role.js';
 import { CustomError } from '../utils/error.js';
 import { hash } from 'bcrypt';
 
-const accountType = {
+export const accountType = {
     PUBLIC: 0,
     ANONYMOUS: 1
 };
 
-const followingStateType = {
+export const followingStateType = {
     PENDING: 0,
     APPROVED: 1
 };
@@ -25,7 +25,7 @@ const userSchema = new Schema({
     birthdate: { type: Date, required: true },
     type: { type: Number, enum: Object.values(accountType), required: true },
     tags: { type: [{ tagId: { type: Types.ObjectId, ref: 'Tag', required: true } }], default: [], required: true },
-    following: { type: [{ userId: { type: Types.ObjectId, ref: 'User', required: true }, state: { enum: Object.values(followingStateType), required: true } }] },
+    following: { type: [{ userId: { type: Types.ObjectId, ref: 'User', required: true }, date: { type: Date, required: true }, state: { enum: Object.values(followingStateType), required: true } }] },
     password: { type: String, required: true },
     date: { type: Date, default: Date.now, required: true }
 });
@@ -49,7 +49,7 @@ export class User {
 
     static getFields(user, admin) {
         const returnType = admin ? accountType.PUBLIC : user.type;
-        return returnType === accountType.PUBLIC ? { username: user.username, bio: user.bio, role: user.role, avatar: user.avatar, tags: user.tags, following: user.following } : { username: user.username, avatar: user.avatar, role: user.role };
+        return returnType === accountType.PUBLIC ? { username: user.username, bio: user.bio, role: user.role, avatar: user.avatar, tags: user.tags, following: user.following, type: user.type } : { username: user.username, avatar: user.avatar, role: user.role, type: user.type };
     }
 }
 
